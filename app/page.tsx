@@ -17,6 +17,7 @@ interface PlatformResults {
 
 export default function SprintCalculator() {
   const [businessDays, setBusinessDays] = useState(10)
+  const [holidays, setHolidays] = useState(0)
   const [platforms, setPlatforms] = useState<Record<string, PlatformData>>({
     web: { engineers: 5, leaveDays: 0, holidays: 0 },
     android: { engineers: 5, leaveDays: 0, holidays: 0 },
@@ -28,7 +29,7 @@ export default function SprintCalculator() {
   const calculateStoryPoints = (platform: PlatformData): PlatformResults => {
     const totalCapacity = platform.engineers * businessDays
     const leavesImpact = platform.leaveDays
-    const holidaysImpact = platform.engineers * platform.holidays
+    const holidaysImpact = platform.engineers * holidays
     const availableCapacity = Math.max(0, totalCapacity - leavesImpact - holidaysImpact)
     const storyPoints = Math.round((availableCapacity / businessDays) * 8)
     
@@ -45,7 +46,7 @@ export default function SprintCalculator() {
       newResults[platformName] = calculateStoryPoints(platformData)
     })
     setResults(newResults)
-  }, [platforms, businessDays])
+  }, [platforms, businessDays, holidays])
 
   const updatePlatform = (platformName: string, field: keyof PlatformData, value: number) => {
     setPlatforms(prev => ({
@@ -86,19 +87,35 @@ export default function SprintCalculator() {
             <Calendar className="h-5 w-5 text-blue-600" />
             <h2 className="text-xl font-semibold text-gray-900">Sprint Configuration</h2>
           </div>
-          <div className="max-w-xs">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Total Business Days in Sprint
-            </label>
-            <input
-              type="number"
-              min="1"
-              max="30"
-              value={businessDays}
-              onChange={(e) => setBusinessDays(Math.max(1, parseInt(e.target.value) || 1))}
-              onFocus={(e) => e.target.select()}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Total Business Days in Sprint
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="30"
+                value={businessDays}
+                onChange={(e) => setBusinessDays(Math.max(1, parseInt(e.target.value) || 1))}
+                onFocus={(e) => e.target.select()}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Holiday Days (Applies to All Platforms)
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="30"
+                value={holidays}
+                onChange={(e) => setHolidays(Math.max(0, parseInt(e.target.value) || 0))}
+                onFocus={(e) => e.target.select()}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+              />
+            </div>
           </div>
         </div>
 
@@ -149,34 +166,11 @@ export default function SprintCalculator() {
                         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
                       />
                     </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        <Calendar className="inline h-4 w-4 mr-1" />
-                        Holiday Days
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={platformData.holidays}
-                        onChange={(e) => updatePlatform(platformKey, 'holidays', parseInt(e.target.value) || 0)}
-                        onFocus={(e) => e.target.select()}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
-                      />
-                    </div>
                   </div>
 
                   {/* Results */}
-                  <div className={`${config.lightColor} rounded-lg p-4 space-y-2`}>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-700">Total Capacity:</span>
-                      <span className="font-medium text-gray-900">{result.totalCapacity} days</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-700">Available Capacity:</span>
-                      <span className="font-medium text-gray-900">{result.availableCapacity} days</span>
-                    </div>
-                    <div className="flex justify-between text-lg font-bold border-t pt-2 border-gray-200">
+                  <div className={`${config.lightColor} rounded-lg p-4`}>
+                    <div className="flex justify-between text-lg font-bold">
                       <span className="text-gray-900">Story Points:</span>
                       <span className={`${config.textColor}`}>
                         {result.storyPoints}
@@ -193,24 +187,7 @@ export default function SprintCalculator() {
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Sprint Total</h2>
-            <div className="text-4xl font-bold text-blue-600 mb-4">{totalStoryPoints}</div>
-            <p className="text-gray-600">Total Story Points for this Sprint</p>
-          </div>
-          
-          {/* Breakdown */}
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-            {Object.entries(platformConfig).map(([platformKey, config]) => {
-              const result = results[platformKey] || { storyPoints: 0 }
-              return (
-                <div key={platformKey} className="text-center p-3 rounded-lg bg-gray-50">
-                  <div className="flex items-center justify-center gap-2 mb-1">
-                    <span>{config.icon}</span>
-                    <span className="font-medium text-gray-700">{config.name}</span>
-                  </div>
-                  <div className="text-lg font-bold text-gray-900">{result.storyPoints}</div>
-                </div>
-              )
-            })}
+            <div className="text-5xl font-bold text-blue-600">{totalStoryPoints}</div>
           </div>
         </div>
 
