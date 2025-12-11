@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Calculator, Users, Calendar, AlertCircle } from 'lucide-react'
+import { log } from 'console'
 
 interface PlatformData {
   engineers: number
@@ -18,6 +19,7 @@ interface PlatformResults {
 export default function SprintCalculator() {
   const [businessDays, setBusinessDays] = useState(10)
   const [holidays, setHolidays] = useState(0)
+  const [velocity, setVelocity] = useState(0.8)
   const [platforms, setPlatforms] = useState<Record<string, PlatformData>>({
     web: { engineers: 5, leaveDays: 0, holidays: 0 },
     android: { engineers: 5, leaveDays: 0, holidays: 0 },
@@ -26,27 +28,27 @@ export default function SprintCalculator() {
 
   const [results, setResults] = useState<Record<string, PlatformResults>>({})
 
-  const calculateStoryPoints = (platform: PlatformData): PlatformResults => {
-    const totalCapacity = platform.engineers * businessDays
-    const leavesImpact = platform.leaveDays
-    const holidaysImpact = platform.engineers * holidays
-    const availableCapacity = Math.max(0, totalCapacity - leavesImpact - holidaysImpact)
-    const storyPoints = Math.round((availableCapacity / businessDays) * 8)
-    
-    return {
-      totalCapacity,
-      availableCapacity,
-      storyPoints
-    }
-  }
-
   useEffect(() => {
+    const calculateStoryPoints = (platform: PlatformData): PlatformResults => {
+      const totalCapacity = platform.engineers * businessDays
+      const leavesImpact = platform.leaveDays
+      const holidaysImpact = platform.engineers * holidays
+      const availableCapacity = Math.max(0, totalCapacity - leavesImpact - holidaysImpact)
+      const storyPoints = Math.round(availableCapacity * velocity)
+      
+      return {
+        totalCapacity,
+        availableCapacity,
+        storyPoints
+      }
+    }
+
     const newResults: Record<string, PlatformResults> = {}
     Object.entries(platforms).forEach(([platformName, platformData]) => {
       newResults[platformName] = calculateStoryPoints(platformData)
     })
     setResults(newResults)
-  }, [platforms, businessDays, holidays])
+  }, [platforms, businessDays, holidays, velocity])
 
   const updatePlatform = (platformName: string, field: keyof PlatformData, value: number) => {
     setPlatforms(prev => ({
@@ -77,7 +79,7 @@ export default function SprintCalculator() {
           </div>
           <p className="text-gray-600 max-w-2xl mx-auto">
             Calculate story points for your sprint based on team capacity, engineer leaves, and holidays. 
-            Each engineer ideally works on 8 story points per sprint.
+            Adjust team velocity to match your team's productivity.
           </p>
         </div>
 
@@ -87,7 +89,7 @@ export default function SprintCalculator() {
             <Calendar className="h-5 w-5 text-blue-600" />
             <h2 className="text-xl font-semibold text-gray-900">Sprint Configuration</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Total Business Days in Sprint
@@ -97,7 +99,10 @@ export default function SprintCalculator() {
                 min="1"
                 max="30"
                 value={businessDays}
-                onChange={(e) => setBusinessDays(Math.max(1, parseInt(e.target.value) || 1))}
+                onChange={(e) => {
+                  const value = e.target.value === '' ? 1 : parseInt(e.target.value)
+                  setBusinessDays(Math.max(1, value))
+                }}
                 onFocus={(e) => e.target.select()}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
               />
@@ -115,6 +120,32 @@ export default function SprintCalculator() {
                 onFocus={(e) => e.target.select()}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Team Velocity (Story Points per Day)
+              </label>
+              <select
+                value={velocity}
+                onChange={(e) => setVelocity(parseFloat(e.target.value))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+              >
+                <option value="0.1">0.1</option>
+                <option value="0.2">0.2</option>
+                <option value="0.3">0.3</option>
+                <option value="0.4">0.4</option>
+                <option value="0.5">0.5</option>
+                <option value="0.6">0.6</option>
+                <option value="0.7">0.7</option>
+                <option value="0.8">0.8</option>
+                <option value="0.9">0.9</option>
+                <option value="1">1.0</option>
+                <option value="1.1">1.1</option>
+                <option value="1.2">1.2</option>
+                <option value="1.3">1.3</option>
+                <option value="1.4">1.4</option>
+                <option value="1.5">1.5</option>
+              </select>
             </div>
           </div>
         </div>
@@ -155,7 +186,7 @@ export default function SprintCalculator() {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         <AlertCircle className="inline h-4 w-4 mr-1" />
-                        Total Leave Days (All Engineers)
+                        Total Leave Days
                       </label>
                       <input
                         type="number"
@@ -193,7 +224,7 @@ export default function SprintCalculator() {
 
         {/* Footer */}
         <div className="text-center mt-8 text-gray-500 text-sm">
-          <p>Story points are calculated based on 8 points per engineer per sprint, adjusted for leaves and holidays.</p>
+          <p>Story points are calculated based on team velocity, adjusted for leaves and holidays.</p>
         </div>
       </div>
     </div>
