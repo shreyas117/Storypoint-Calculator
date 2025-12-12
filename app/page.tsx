@@ -83,7 +83,7 @@ export default function SprintCalculator() {
           </p>
         </div>
 
-        {/* Business Days Input */}
+        {/* Business Days  Input */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex items-center gap-3 mb-4">
             <Calendar className="h-5 w-5 text-blue-600" />
